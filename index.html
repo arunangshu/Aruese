@@ -1464,6 +1464,33 @@
             updateSVGDisplay();
             closeCustomizeDialog();
         }
+
+        // Function to request full screen
+        function requestFullScreen() {
+            const element = document.documentElement;
+            
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) { // Safari
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) { // IE11
+                element.msRequestFullscreen();
+            }
+        }
+
+        // Check if device is mobile and request full screen on first interaction
+        document.addEventListener('DOMContentLoaded', () => {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // Add a one-time click listener to the body
+                document.body.addEventListener('click', function handleFirstClick() {
+                    requestFullScreen();
+                    // Remove the listener after first click
+                    document.body.removeEventListener('click', handleFirstClick);
+                }, { once: true });
+            }
+        });
     </script>
 </body>
 </html>
