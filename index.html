@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Script Typing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .typing-area {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .svg-display {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            border: 1px solid #eee;
+        }
+
+        .keyboard {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .key {
+            background: linear-gradient(145deg, #f0f0f0, #e6e6e6);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 50px;
+            min-height: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .key:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(145deg, #f5f5f5, #ebebeb);
+        }
+
+        .key:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .key.pressed {
+            background: linear-gradient(145deg, #d0d0d0, #c6c6c6);
+            transform: translateY(1px);
+        }
+
+        .key-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .key-glyph {
+            width: 24px;
+            height: 24px;
+        }
+
+        .key-glyph svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .special-key {
+            background: linear-gradient(145deg, #e0e0e0, #d6d6d6);
+            color: #444;
+            font-size: 12px;
+        }
+
+        .space-key {
+            min-width: 200px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .download-btn, .customize-btn {
+            background: linear-gradient(145deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .customize-btn {
+            background: linear-gradient(145deg, #2196F3, #1976D2);
+        }
+
+        .download-btn:hover, .customize-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .error-fallback {
+            color: #ff6b6b;
+            font-size: 16px;
+            border: 2px dashed #ff6b6b;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        /* Dialog styles */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .dialog {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .dialog h3 {
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .dialog-group {
+            margin-bottom: 16px;
+        }
+
+        .dialog-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .dialog-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .dialog-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .dialog-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .dialog-btn.primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .dialog-btn.secondary {
+            background: #ddd;
+            color: #333;
+        }
+
+        .dialog-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Customize mode styles */
+        .customize-mode .glyph-element {
+            cursor: pointer;
+            stroke: rgba(0, 0, 255, 0.3);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .customize-mode .glyph-element:hover {
+            stroke: rgba(0, 0, 255, 0.6);
+            stroke-width: 3;
+        }
+
+        .customize-mode .glyph-element.selected {
+            stroke: #ff4444;
+            stroke-width: 3;
+        }
+
+        .cursor-line {
+            stroke: #333;
+            stroke-width: 2;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+		
+		.resize-handle {
+			cursor: nw-resize !important;
+		}
+
+		.customize-mode .glyph-element {
+			cursor: move !important;
+		}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Custom Script Typing Interface</h1>
+            <p>Type using the virtual keyboard or your physical keyboard</p>
+        </div>
+
+        <div class="typing-area">
+            <svg class="svg-display" id="svgDisplay" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <style type="text/css">
+                        .glyph { transform-origin: center; }
+                    </style>
+                </defs>
+                <line id="cursor" class="cursor-line" x1="20" y1="40" x2="20" y2="80"></line>
+            </svg>
+        </div>
+
+        <div class="keyboard">
+            <div class="keyboard-row">
+                <button class="key" data-key="q" data-script="aa">
+                    <div>
+                        <div class="key-label">Q</div>
+                        <div class="key-glyph" id="glyph-aa"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="w" data-script="ai">
+                    <div>
+                        <div class="key-label">W</div>
+                        <div class="key-glyph" id="glyph-ai"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="e" data-script="au">
+                    <div>
+                        <div class="key-label">E</div>
+                        <div class="key-glyph" id="glyph-au"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="r" data-script="o">
+                    <div>
+                        <div class="key-label">R</div>
+                        <div class="key-glyph" id="glyph-o"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="t" data-script="u">
+                    <div>
+                        <div class="key-label">T</div>
+                        <div class="key-glyph" id="glyph-u"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="y" data-script="i">
+                    <div>
+                        <div class="key-label">Y</div>
+                        <div class="key-glyph" id="glyph-i"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="u" data-script="e">
+                    <div>
+                        <div class="key-label">U</div>
+                        <div class="key-glyph" id="glyph-e"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="i" data-script="a">
+                    <div>
+                        <div class="key-label">I</div>
+                        <div class="key-glyph" id="glyph-a"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="o" data-script="eu">
+                    <div>
+                        <div class="key-label">O</div>
+                        <div class="key-glyph" id="glyph-eu"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="p" data-script="">
+                    <div>
+                        <div class="key-label">P</div>
+                        <div style="font-size: 10px;">unassigned</div>
+                    </div>
+                </button>
+            </div>
+
+            <div class="keyboard-row">
+                <button class="key" data-key="a" data-script="g">
+                    <div>
+                        <div class="key-label">A</div>
+                        <div class="key-glyph" id="glyph-g"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="s" data-script="j">
+                    <div>
+                        <div class="key-label">S</div>
+                        <div class="key-glyph" id="glyph-j"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="d" data-script="dd">
+                    <div>
+                        <div class="key-label">D</div>
+                        <div class="key-glyph" id="glyph-dd"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="f" data-script="d">
+                    <div>
+                        <div class="key-label">F</div>
+                        <div class="key-glyph" id="glyph-d"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="g" data-script="b">
+                    <div>
+                        <div class="key-label">G</div>
+                        <div class="key-glyph" id="glyph-b"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="h" data-script="v">
+                    <div>
+                        <div class="key-label">H</div>
+                        <div class="key-glyph" id="glyph-v"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="j" data-script="l">
+                    <div>
+                        <div class="key-label">J</div>
+                        <div class="key-glyph" id="glyph-l"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="k" data-script="bd">
+                    <div>
+                        <div class="key-label">K</div>
+                        <div class="key-glyph" id="glyph-bd"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="l" data-script="dj">
+                    <div>
+                        <div class="key-label">L</div>
+                        <div class="key-glyph" id="glyph-dj"></div>
+                    </div>
+                </button>
+            </div>
+
+            <div class="keyboard-row">
+                <button class="key" data-key="z" data-script="dot-above">
+                    <div>
+                        <div class="key-label">Z</div>
+                        <div class="key-glyph" id="glyph-dot-above"></div>
+                        <div style="font-size: 8px;">above</div>
+                    </div>
+                </button>
+                <button class="key" data-key="x" data-script="dot-middle">
+                    <div>
+                        <div class="key-label">X</div>
+                        <div class="key-glyph" id="glyph-dot-middle"></div>
+                        <div style="font-size: 8px;">middle</div>
+                    </div>
+                </button>
+                <button class="key" data-key="c" data-script="h">
+                    <div>
+                        <div class="key-label">C</div>
+                        <div class="key-glyph" id="glyph-h"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="v" data-script="">
+                    <div>
+                        <div class="key-label">V</div>
+                        <div style="font-size: 16px;">↕</div>
+                    </div>
+                </button>
+                <button class="key" data-key="b" data-script="">
+                    <div>
+                        <div class="key-label">B</div>
+                        <div style="font-size: 16px;">✕</div>
+                    </div>
+                </button>
+                <button class="key" data-key="n" data-script="!">
+                    <div>
+                        <div class="key-label">N</div>
+                        <div class="key-glyph" id="glyph-!"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="m" data-script="!i">
+                    <div>
+                        <div class="key-label">M</div>
+                        <div class="key-glyph" id="glyph-!i"></div>
+                    </div>
+                </button>
+                <button class="key" data-key="-" data-script="asp">
+                    <div>
+                        <div class="key-label">-</div>
+                        <div class="key-glyph" id="glyph-asp"></div>
+                    </div>
+                </button>
+            </div>
+
+            <div class="keyboard-row">
+                <button class="key special-key" data-key="Backspace">Backspace</button>
+                <button class="key special-key space-key" data-key=" ">Space</button>
+                <button class="key special-key" data-key="Enter">Enter</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="download-btn" onclick="downloadSVG()">Download SVG</button>
+            <button class="download-btn" onclick="showPngDialog()">Download PNG</button>
+            <button class="customize-btn" onclick="toggleCustomizeMode()">Customize</button>
+        </div>
+    </div>
+
+    <!-- PNG Resolution Dialog -->
+    <div class="dialog-overlay" id="pngDialog">
+        <div class="dialog">
+            <h3>PNG Export Settings</h3>
+            <div class="dialog-group">
+                <label for="lineHeight">Line Height (pixels):</label>
+                <input type="number" id="lineHeight" value="70" min="20" max="200">
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn secondary" onclick="closePngDialog()">Cancel</button>
+                <button class="dialog-btn primary" onclick="downloadPNG()">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Customization Dialog -->
+    <div class="dialog-overlay" id="customizeDialog">
+        <div class="dialog">
+            <h3>Customize Character</h3>
+            <div class="dialog-group">
+                <label for="translateX">Translate X:</label>
+                <input type="number" id="translateX" value="0" step="0.1">
+            </div>
+            <div class="dialog-group">
+                <label for="translateY">Translate Y:</label>
+                <input type="number" id="translateY" value="0" step="0.1">
+            </div>
+            <div class="dialog-group">
+                <label for="scaleX">Scale X:</label>
+                <input type="number" id="scaleX" value="1" step="0.1" min="0.1">
+            </div>
+            <div class="dialog-group">
+                <label for="scaleY">Scale Y:</label>
+                <input type="number" id="scaleY" value="1" step="0.1" min="0.1">
+            </div>
+            <div class="dialog-group">
+                <label for="stretchX">Stretch X:</label>
+                <input type="number" id="stretchX" value="1" step="0.1" min="0.1">
+            </div>
+            <div class="dialog-group">
+                <label for="stretchY">Stretch Y:</label>
+                <input type="number" id="stretchY" value="1" step="0.1" min="0.1">
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn secondary" onclick="closeCustomizeDialog()">Cancel</button>
+                <button class="dialog-btn primary" onclick="applyCustomization()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let textContent = [];
+        let cursorPosition = 0;
+        let currentX = 20;
+        let currentY = 60;
+        let lineHeight = 70;
+        let glyphWidth = 50;
+        let customizeMode = false;
+        let selectedGlyph = null;
+
+        const keyMapping = {
+            'q': 'aa', 'w': 'ai', 'e': 'au', 'r': 'o', 't': 'u',
+            'y': 'i', 'u': 'e', 'i': 'a', 'o': 'eu', 'p': '',
+            'a': 'g', 's': 'j', 'd': 'dd', 'f': 'd', 'g': 'b',
+            'h': 'v', 'j': 'l', 'k': 'bd', 'l': 'dj',
+            'z': 'dot-above', 'x': 'dot-middle', 'c': 'h', 'v': 'v-transform', 'b': '',
+            'n': '!', 'm': '!i', '-': 'asp'
+        };
+
+        let dotSvg = null;
+
+        // Mapping for V key transformations
+        const vKeyTransformations = {
+            'g': 'ghy', 'j': 'zh', 'dd': 'rd', 'd': 'z', 'b': 'bhy',
+            'v': 'w', 'l': 'r', 'bd': 'zv', 'dj': 'zzh'
+        };
+
+		let isDragging = false;
+		let isResizing = false;
+		let dragStartPos = { x: 0, y: 0 };
+		let dragOffset = { x: 0, y: 0 };
+		let resizeStartPos = { x: 0, y: 0 };
+		let resizeStartScale = { x: 1, y: 1 };
+		let activeGlyph = null;
+		let resizeHandle = null;
+		
+        async function loadDotSvg() {
+            if (!dotSvg) {
+                dotSvg = await loadGlyph('dot');
+            }
+            return dotSvg;
+        }
+
+        async function loadGlyph(scriptChar) {
+            if (!scriptChar || scriptChar === '') return null;
+            
+            try {
+                const response = await fetch(`glyph/svg/${scriptChar}.svg`);
+                if (!response.ok) throw new Error(`Failed to load ${scriptChar}.svg`);
+                const svgText = await response.text();
+                return svgText;
+            } catch (error) {
+                console.warn(`Could not load glyph for ${scriptChar}:`, error);
+                return null;
+            }
+        }
+
+        async function initializeKeyboard() {
+            await loadDotSvg();
+            
+            for (const [key, scriptChar] of Object.entries(keyMapping)) {
+                if (scriptChar && scriptChar !== '') {
+                    let glyphElement;
+                    if (scriptChar === 'dot-above' || scriptChar === 'dot-middle') {
+                        glyphElement = document.getElementById(`glyph-${scriptChar}`);
+                        if (glyphElement && dotSvg) {
+                            glyphElement.innerHTML = dotSvg;
+                        }
+                    } else {
+                        glyphElement = document.getElementById(`glyph-${scriptChar}`);
+                        if (glyphElement) {
+                            const svgContent = await loadGlyph(scriptChar);
+                            if (svgContent) {
+                                glyphElement.innerHTML = svgContent;
+                            } else {
+                                glyphElement.innerHTML = `<div class="error-fallback">${scriptChar}</div>`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateSVGDisplay() {
+			const svgDisplay = document.getElementById('svgDisplay');
+			const cursor = document.getElementById('cursor');
+			
+			// Clear existing glyphs and resize handles
+			const existingGlyphs = svgDisplay.querySelectorAll('.glyph-element');
+			const existingHandles = svgDisplay.querySelectorAll('.resize-handle');
+			existingGlyphs.forEach(g => g.remove());
+			existingHandles.forEach(h => h.remove());
+			
+			let x = 20, y = 60;
+			
+			for (let i = 0; i < textContent.length; i++) {
+				const item = textContent[i];
+				
+				if (i === cursorPosition) {
+					cursor.setAttribute('x1', x);
+					cursor.setAttribute('x2', x);
+					cursor.setAttribute('y1', y - 20);
+					cursor.setAttribute('y2', y + 20);
+				}
+				
+				if (item.type === 'glyph' && item.svg) {
+					const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+					g.classList.add('glyph-element');
+					g.setAttribute('data-index', i);
+					g.style.cursor = customizeMode ? 'move' : 'default';
+					
+					// Apply custom transformations
+					let transform = `translate(${x + (item.customTransform?.translateX || 0)}, ${y + (item.customTransform?.translateY || 0)})`;
+					
+					if (item.customTransform) {
+						const scaleX = item.customTransform.scaleX || 1;
+						const scaleY = item.customTransform.scaleY || 1;
+						const stretchX = item.customTransform.stretchX || 1;
+						const stretchY = item.customTransform.stretchY || 1;
+						
+						transform += ` scale(${scaleX * stretchX}, ${scaleY * stretchY})`;
+					}
+					
+					if (item.className && item.className.includes('asp-special')) {
+						transform += ' translateY(-20)';
+					}
+					
+					g.setAttribute('transform', transform);
+					
+					// Parse and insert the SVG content
+					const svgContent = item.svg
+						.replace(/<\?xml[^>]*\?>/, '')
+						.replace(/<svg[^>]*>/, '')
+						.replace('</svg>', '');
+					
+					g.innerHTML = svgContent;
+					
+					// Add drag and resize event handlers in customize mode
+					if (customizeMode) {
+						g.addEventListener('mousedown', (e) => startDrag(e, i));
+						
+						// Add resize handle
+						const resizeHandle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+						resizeHandle.classList.add('resize-handle');
+						resizeHandle.setAttribute('cx', x + (item.customTransform?.translateX || 0) + 25);
+						resizeHandle.setAttribute('cy', y + (item.customTransform?.translateY || 0) - 25);
+						resizeHandle.setAttribute('r', '6');
+						resizeHandle.setAttribute('fill', '#ff4444');
+						resizeHandle.setAttribute('stroke', '#ffffff');
+						resizeHandle.setAttribute('stroke-width', '2');
+						resizeHandle.setAttribute('data-index', i);
+						resizeHandle.style.cursor = 'nw-resize';
+						resizeHandle.addEventListener('mousedown', (e) => startResize(e, i));
+						svgDisplay.appendChild(resizeHandle);
+					}
+					
+					svgDisplay.appendChild(g);
+					
+					// Calculate width for different characters
+					if (item.className && item.className.includes('asp-special')) {
+						x += 25;
+					} else {
+						x += glyphWidth;
+					}
+				} else if (item.type === 'dot-above' || item.type === 'dot-middle') {
+					// KEEP: dot handling as before
+					const prevGlyph = svgDisplay.querySelector(`.glyph-element[data-index="${i-1}"]`);
+					if (prevGlyph && item.svg) {
+						const dotG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+						const dotOffset = item.type === 'dot-above' ? -30 : 0;
+						dotG.setAttribute('transform', `translate(0, ${dotOffset})`);
+						
+						const svgContent = item.svg
+							.replace(/<\?xml[^>]*\?>/, '')
+							.replace(/<svg[^>]*>/, '')
+							.replace('</svg>', '');
+						
+						dotG.innerHTML = svgContent;
+						prevGlyph.appendChild(dotG);
+					}
+				} else if (item.type === 'space') {
+					x += 30;
+				} else if (item.type === 'newline') {
+					x = 20;
+					y += lineHeight;
+				}
+				
+				if (x > 1150) {
+					x = 20;
+					y += lineHeight;
+				}
+			}
+			
+			// Position cursor at the end if needed
+			if (cursorPosition >= textContent.length) {
+				cursor.setAttribute('x1', x);
+				cursor.setAttribute('x2', x);
+				cursor.setAttribute('y1', y - 20);
+				cursor.setAttribute('y2', y + 20);
+			}
+		}
+
+		// NEW: Drag functionality
+		function startDrag(e, index) {
+			if (!customizeMode) return;
+			e.preventDefault();
+			e.stopPropagation();
+			
+			isDragging = true;
+			activeGlyph = index;
+			
+			const svgDisplay = document.getElementById('svgDisplay');
+			const rect = svgDisplay.getBoundingClientRect();
+			const svgPoint = getSVGPoint(e.clientX, e.clientY, svgDisplay);
+			
+			const item = textContent[index];
+			const currentTransform = item.customTransform || {};
+			
+			dragStartPos = { x: svgPoint.x, y: svgPoint.y };
+			dragOffset = {
+				x: currentTransform.translateX || 0,
+				y: currentTransform.translateY || 0
+			};
+			
+			document.addEventListener('mousemove', handleDrag);
+			document.addEventListener('mouseup', stopDrag);
+		}
+
+		function handleDrag(e) {
+			if (!isDragging || activeGlyph === null) return;
+			
+			const svgDisplay = document.getElementById('svgDisplay');
+			const svgPoint = getSVGPoint(e.clientX, e.clientY, svgDisplay);
+			
+			const deltaX = svgPoint.x - dragStartPos.x;
+			const deltaY = svgPoint.y - dragStartPos.y;
+			
+			if (!textContent[activeGlyph].customTransform) {
+				textContent[activeGlyph].customTransform = {};
+			}
+			
+			textContent[activeGlyph].customTransform.translateX = dragOffset.x + deltaX;
+			textContent[activeGlyph].customTransform.translateY = dragOffset.y + deltaY;
+			
+			updateSVGDisplay();
+		}
+
+		function stopDrag() {
+			isDragging = false;
+			activeGlyph = null;
+			document.removeEventListener('mousemove', handleDrag);
+			document.removeEventListener('mouseup', stopDrag);
+		}
+
+		// NEW: Resize functionality
+		function startResize(e, index) {
+			if (!customizeMode) return;
+			e.preventDefault();
+			e.stopPropagation();
+			
+			isResizing = true;
+			activeGlyph = index;
+			
+			const svgDisplay = document.getElementById('svgDisplay');
+			const svgPoint = getSVGPoint(e.clientX, e.clientY, svgDisplay);
+			
+			const item = textContent[index];
+			const currentTransform = item.customTransform || {};
+			
+			resizeStartPos = { x: svgPoint.x, y: svgPoint.y };
+			resizeStartScale = {
+				x: (currentTransform.scaleX || 1) * (currentTransform.stretchX || 1),
+				y: (currentTransform.scaleY || 1) * (currentTransform.stretchY || 1)
+			};
+			
+			document.addEventListener('mousemove', handleResize);
+			document.addEventListener('mouseup', stopResize);
+		}
+
+		function handleResize(e) {
+			if (!isResizing || activeGlyph === null) return;
+			
+			const svgDisplay = document.getElementById('svgDisplay');
+			const svgPoint = getSVGPoint(e.clientX, e.clientY, svgDisplay);
+			
+			const deltaX = svgPoint.x - resizeStartPos.x;
+			const deltaY = svgPoint.y - resizeStartPos.y;
+			
+			// Calculate scale based on distance from original position
+			const scaleFactorX = Math.max(0.1, 1 + deltaX / 100);
+			const scaleFactorY = Math.max(0.1, 1 + deltaY / 100);
+			
+			if (!textContent[activeGlyph].customTransform) {
+				textContent[activeGlyph].customTransform = {};
+			}
+			
+			textContent[activeGlyph].customTransform.scaleX = resizeStartScale.x * scaleFactorX;
+			textContent[activeGlyph].customTransform.scaleY = resizeStartScale.y * scaleFactorY;
+			
+			updateSVGDisplay();
+		}
+
+		function stopResize() {
+			isResizing = false;
+			activeGlyph = null;
+			document.removeEventListener('mousemove', handleResize);
+			document.removeEventListener('mouseup', stopResize);
+		}
+
+		// NEW: Helper function to get SVG coordinates
+		function getSVGPoint(clientX, clientY, svgElement) {
+			const pt = svgElement.createSVGPoint();
+			pt.x = clientX;
+			pt.y = clientY;
+			return pt.matrixTransform(svgElement.getScreenCTM().inverse());
+		}
+
+        async function addCharacter(scriptChar) {
+            if (scriptChar === 'dot-above' || scriptChar === 'dot-middle') {
+                const dotSvgContent = await loadDotSvg();
+                textContent.splice(cursorPosition, 0, { 
+                    type: scriptChar, 
+                    char: scriptChar,
+                    svg: dotSvgContent 
+                });
+                cursorPosition++;
+            } else if (scriptChar === 'v-transform') {
+                await handleVKeyTransformation();
+            } else if (scriptChar === '' || !scriptChar) {
+                return;
+            } else {
+                const svg = await loadGlyph(scriptChar);
+                let itemToAdd = { 
+                    type: 'glyph', 
+                    char: scriptChar, 
+                    svg: svg 
+                };
+
+                if (scriptChar === 'asp' && cursorPosition > 0) {
+                    const specialChars = ['g', 'j', 'dd', 'd', 'b', 'v', 'l', 'bd', 'dj', 'dhy', 'zh', 'rd', 'z', 'bhy', 'w', 'r', 'zv', 'zzh'];
+                    
+                    let prevIndex = cursorPosition - 1;
+                    while (prevIndex >= 0 && textContent[prevIndex].type !== 'glyph') {
+                        prevIndex--;
+                    }
+                    
+                    if (prevIndex >= 0 && specialChars.includes(textContent[prevIndex].char)) {
+                        itemToAdd.className = 'asp-special';
+                    } else {
+                        itemToAdd.className = 'asp-normal';
+                    }
+                }
+
+                textContent.splice(cursorPosition, 0, itemToAdd);
+                cursorPosition++;
+            }
+            updateSVGDisplay();
+        }
+
+        async function handleVKeyTransformation() {
+            if (cursorPosition === 0) return;
+            
+            let prevIndex = cursorPosition - 1;
+            while (prevIndex >= 0 && textContent[prevIndex].type !== 'glyph') {
+                prevIndex--;
+            }
+            
+            if (prevIndex < 0) return;
+            
+            const prevGlyph = textContent[prevIndex];
+            const transformation = vKeyTransformations[prevGlyph.char];
+            
+            if (transformation) {
+                const newSvg = await loadGlyph(transformation);
+                textContent[prevIndex] = {
+                    ...textContent[prevIndex],
+                    char: transformation,
+                    svg: newSvg
+                };
+            }
+        }
+
+        function addSpace() {
+            textContent.splice(cursorPosition, 0, { type: 'space' });
+            cursorPosition++;
+            updateSVGDisplay();
+        }
+
+        function addNewline() {
+            textContent.splice(cursorPosition, 0, { type: 'newline' });
+            cursorPosition++;
+            updateSVGDisplay();
+        }
+
+        function handleBackspace() {
+            if (cursorPosition > 0) {
+                textContent.splice(cursorPosition - 1, 1);
+                cursorPosition--;
+                updateSVGDisplay();
+            }
+        }
+
+        function moveCursor(direction) {
+            if (direction === 'left' && cursorPosition > 0) {
+                cursorPosition--;
+            } else if (direction === 'right' && cursorPosition < textContent.length) {
+                cursorPosition++;
+            }
+            updateSVGDisplay();
+        }
+
+        // Keyboard event handlers
+        document.addEventListener('keydown', async (e) => {
+            const key = e.key.toLowerCase();
+            
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                handleBackspace();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                addNewline();
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                addSpace();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                moveCursor('left');
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                moveCursor('right');
+            } else if (keyMapping[key]) {
+                e.preventDefault();
+                const scriptChar = keyMapping[key];
+                if (scriptChar) {
+                    await addCharacter(scriptChar);
+                }
+            }
+        });
+
+        // Virtual keyboard handlers
+        document.addEventListener('click', async (e) => {
+            if (e.target.closest('.key')) {
+                const keyButton = e.target.closest('.key');
+                const key = keyButton.dataset.key;
+                const scriptChar = keyButton.dataset.script;
+                
+                // Visual feedback
+                keyButton.classList.add('pressed');
+                setTimeout(() => keyButton.classList.remove('pressed'), 150);
+                
+                if (key === 'Backspace') {
+                    handleBackspace();
+                } else if (key === 'Enter') {
+                    addNewline();
+                } else if (key === ' ') {
+                    addSpace();
+                } else if (scriptChar !== undefined) {
+                    if (scriptChar) {
+                        await addCharacter(scriptChar);
+                    }
+                }
+            }
+        });
+
+        // Download SVG function
+        function downloadSVG() {
+            const svgDisplay = document.getElementById('svgDisplay');
+            const svgClone = svgDisplay.cloneNode(true);
+            
+            // Remove cursor from clone
+            const cursor = svgClone.querySelector('#cursor');
+            if (cursor) cursor.remove();
+            
+            // Calculate actual content bounds
+            let maxX = 20, maxY = 60;
+            const glyphs = svgClone.querySelectorAll('.glyph-element');
+            glyphs.forEach(glyph => {
+                const transform = glyph.getAttribute('transform');
+                if (transform) {
+                    const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                    if (translateMatch) {
+                        const x = parseFloat(translateMatch[1]);
+                        const y = parseFloat(translateMatch[2]);
+                        maxX = Math.max(maxX, x + 50);
+                        maxY = Math.max(maxY, y + 20);
+                    }
+                }
+            });
+            
+            // Update viewBox to fit content
+            svgClone.setAttribute('viewBox', `0 0 ${maxX + 20} ${maxY + 20}`);
+            svgClone.setAttribute('width', maxX + 20);
+            svgClone.setAttribute('height', maxY + 20);
+            
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'custom-script.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // PNG Dialog functions
+        function showPngDialog() {
+            document.getElementById('pngDialog').style.display = 'flex';
+        }
+
+        function closePngDialog() {
+            document.getElementById('pngDialog').style.display = 'none';
+        }
+
+        function downloadPNG() {
+            const customLineHeight = parseInt(document.getElementById('lineHeight').value) || 70;
+            const svgDisplay = document.getElementById('svgDisplay');
+            const svgClone = svgDisplay.cloneNode(true);
+            
+            // Remove cursor from clone
+            const cursor = svgClone.querySelector('#cursor');
+            if (cursor) cursor.remove();
+            
+            // Recalculate positions with new line height
+            let x = 20, y = 60;
+            const glyphs = svgClone.querySelectorAll('.glyph-element');
+            const glyphArray = Array.from(glyphs);
+            
+            glyphArray.forEach((glyph, index) => {
+                const dataIndex = parseInt(glyph.getAttribute('data-index'));
+                const item = textContent[dataIndex];
+                
+                if (item) {
+                    let transform = `translate(${x + (item.customTransform?.translateX || 0)}, ${y + (item.customTransform?.translateY || 0)})`;
+                    
+                    if (item.customTransform) {
+                        const scaleX = item.customTransform.scaleX || 1;
+                        const scaleY = item.customTransform.scaleY || 1;
+                        const stretchX = item.customTransform.stretchX || 1;
+                        const stretchY = item.customTransform.stretchY || 1;
+                        transform += ` scale(${scaleX * stretchX}, ${scaleY * stretchY})`;
+                    }
+                    
+                    if (item.className && item.className.includes('asp-special')) {
+                        transform += ' translateY(-20)';
+                    }
+                    
+                    glyph.setAttribute('transform', transform);
+                    
+                    // Update position for next glyph
+                    if (item.className && item.className.includes('asp-special')) {
+                        x += 25;
+                    } else {
+                        x += glyphWidth;
+                    }
+                    
+                    if (x > 1150) {
+                        x = 20;
+                        y += customLineHeight;
+                    }
+                }
+            });
+            
+            // Calculate bounds with new line height
+            let maxX = 20, maxY = 60;
+            glyphArray.forEach(glyph => {
+                const transform = glyph.getAttribute('transform');
+                if (transform) {
+                    const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                    if (translateMatch) {
+                        const x = parseFloat(translateMatch[1]);
+                        const y = parseFloat(translateMatch[2]);
+                        maxX = Math.max(maxX, x + 50);
+                        maxY = Math.max(maxY, y + 20);
+                    }
+                }
+            });
+            
+            svgClone.setAttribute('viewBox', `0 0 ${maxX + 20} ${maxY + 20}`);
+            svgClone.setAttribute('width', maxX + 20);
+            svgClone.setAttribute('height', maxY + 20);
+            
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                canvas.width = maxX + 20;
+                canvas.height = maxY + 20;
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'custom-script.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+            };
+            
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            img.src = url;
+            
+            closePngDialog();
+        }
+
+        function toggleCustomizeMode() {
+			customizeMode = !customizeMode;
+			const button = document.querySelector('.customize-btn');
+			const svgDisplay = document.getElementById('svgDisplay');
+			
+			if (customizeMode) {
+				button.textContent = 'Exit Customize';
+				button.style.background = 'linear-gradient(145deg, #ff6b6b, #ee5a5a)';
+				svgDisplay.classList.add('customize-mode');
+				selectedGlyph = null;
+			} else {
+				button.textContent = 'Customize';
+				button.style.background = 'linear-gradient(145deg, #2196F3, #1976D2)';
+				svgDisplay.classList.remove('customize-mode');
+				selectedGlyph = null;
+				// Stop any ongoing drag/resize
+				isDragging = false;
+				isResizing = false;
+				activeGlyph = null;
+				document.removeEventListener('mousemove', handleDrag);
+				document.removeEventListener('mouseup', stopDrag);
+				document.removeEventListener('mousemove', handleResize);
+				document.removeEventListener('mouseup', stopResize);
+			}
+			updateSVGDisplay();
+		}
+
+        function selectGlyph(index) {
+            if (!customizeMode) return;
+            
+            const svgDisplay = document.getElementById('svgDisplay');
+            const selected = svgDisplay.querySelectorAll('.glyph-element.selected');
+            selected.forEach(el => el.classList.remove('selected'));
+            
+            const glyph = svgDisplay.querySelector(`.glyph-element[data-index="${index}"]`);
+            if (glyph) {
+                glyph.classList.add('selected');
+                selectedGlyph = index;
+                showCustomizeDialog();
+            }
+        }
+
+        function showCustomizeDialog() {
+            if (selectedGlyph === null) return;
+            
+            const item = textContent[selectedGlyph];
+            const transform = item.customTransform || {};
+            
+            document.getElementById('translateX').value = transform.translateX || 0;
+            document.getElementById('translateY').value = transform.translateY || 0;
+            document.getElementById('scaleX').value = transform.scaleX || 1;
+            document.getElementById('scaleY').value = transform.scaleY || 1;
+            document.getElementById('stretchX').value = transform.stretchX || 1;
+            document.getElementById('stretchY').value = transform.stretchY || 1;
+            
+            document.getElementById('customizeDialog').style.display = 'flex';
+        }
+
+        function closeCustomizeDialog() {
+            document.getElementById('customizeDialog').style.display = 'none';
+        }
+
+        function applyCustomization() {
+            if (selectedGlyph === null) {
+                closeCustomizeDialog();
+                return;
+            }
+            
+            const translateX = parseFloat(document.getElementById('translateX').value) || 0;
+            const translateY = parseFloat(document.getElementById('translateY').value) || 0;
+            const scaleX = parseFloat(document.getElementById('scaleX').value) || 1;
+            const scaleY = parseFloat(document.getElementById('scaleY').value) || 1;
+            const stretchX = parseFloat(document.getElementById('stretchX').value) || 1;
+            const stretchY = parseFloat(document.getElementById('stretchY').value) || 1;
+            
+            if (!textContent[selectedGlyph].customTransform) {
+                textContent[selectedGlyph].customTransform = {};
+            }
+            
+            textContent[selectedGlyph].customTransform = {
+                translateX: translateX,
+                translateY: translateY,
+                scaleX: scaleX,
+                scaleY: scaleY,
+                stretchX: stretchX,
+                stretchY: stretchY
+            };
+            
+            updateSVGDisplay();
+            closeCustomizeDialog();
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeKeyboard();
+            updateSVGDisplay();
+        });
+    </script>
+</body>
+</html>
